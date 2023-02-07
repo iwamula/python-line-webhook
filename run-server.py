@@ -1,3 +1,4 @@
+import sys
 import base64
 import hashlib
 import hmac
@@ -6,8 +7,7 @@ import socketserver
 import datetime
 import json
 
-PORT = 8888
-channel_secret = '【CHANEL_SECRET】'
+channel_secret = '【CHANNEL_SECRET】'
 
 class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -33,7 +33,7 @@ class Handler(BaseHTTPRequestHandler):
         signature = base64.b64encode(hash)
 
         if header_signature.encode('utf-8') != signature:
-            print("Unable to verify signature")
+            print("ERROR: Unable to verify signature")
             print(f"{header_signature=}")
             print(f"{signature=}")
             self.send_response(501)
@@ -44,7 +44,7 @@ class Handler(BaseHTTPRequestHandler):
         try:
             data = json.loads(req_body_bytes)
         except json.JSONDecodeError:
-            print(f"Invalid JSON format: {data}")
+            print(f"ERROR: Invalid JSON format: {data}")
 
         # メッセージイベントを抽出
         events = data['events']
@@ -58,13 +58,20 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
 
     def on_receive(self, message):
+        # メッセージを受け取った時ときの処理
         print(f"{message=}")
         # Do something ...
 
 
 def main():
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
-        print("serving at port", PORT)
+    args = sys.argv
+    if len(args) < 2 or not args[1].isdigit():
+        print("Usage: run-server.py [port number]")
+        return
+
+    port = int(args[1])
+    with socketserver.TCPServer(("", port), Handler) as httpd:
+        print("serving at port", port)
         httpd.serve_forever()
 
 
